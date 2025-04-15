@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
+from mpmath import mp
 import datetime
 
 def get_current_date():
@@ -11,22 +12,25 @@ def get_current_date():
     return datetime.date.today().strftime("%Y-%m-%d")
 
 
+# Updated to use mpmath instead of decimal for better handling of large numbers
+# Suggested by Sultan — thank you!
 def to_decimal(value: str, decimals: int = None):
     """
-    Converts a value to a Decimal, with optional rounding to a specific number of decimal places.
-    
-    Args:
-        value (str): The value to convert.
-        decimals (int, optional): Number of decimal places to round to.
-    
+    Converts a value to a high-precision number using mpmath,
+    with optional rounding to a specific number of decimal places.
+
     Returns:
-        Decimal: The converted decimal value.
+        mp.mpf: A high-precision number (not string).
     """
-    d = Decimal(str(value))
-    if decimals is not None:
-        quantizer = Decimal(f"1.{'0'*decimals}")
-        return d.quantize(quantizer, rounding=ROUND_HALF_UP)
-    return d
+    try:
+        mp.dps = max(50, decimals + 5 if decimals else 50)
+        d = mp.mpf(str(value))
+        if decimals is not None:
+            return mp.mpf(round(d, decimals))
+        return d
+    except Exception as e:
+        print(f"⚠️  Failed to convert value to decimal: {value} -> {e}")
+        return mp.mpf("0")
 
 
 def is_number(value):
