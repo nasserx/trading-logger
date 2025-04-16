@@ -1,5 +1,4 @@
 from decimal import Decimal, ROUND_HALF_UP
-from mpmath import mp
 import datetime
 
 def get_current_date():
@@ -12,25 +11,27 @@ def get_current_date():
     return datetime.date.today().strftime("%Y-%m-%d")
 
 
-# Updated to use mpmath instead of decimal for better handling of large numbers
-# Suggested by Sultan — thank you!
-def to_decimal(value: str, decimals: int = None):
+def _round(value: Decimal, decimals=2):
     """
-    Converts a value to a high-precision number using mpmath,
-    with optional rounding to a specific number of decimal places.
+    Performs standard rounding (round-half-up) using the Decimal module for precision.
+
+    This function rounds a Decimal value to a specified number of decimal places using
+    the round-half-up method, which is the most commonly used rounding strategy in financial
+    and general arithmetic contexts.
+
+    Parameters:
+        value (Decimal): The numeric value to be rounded. Must be a Decimal object.
+        decimals (int): The number of decimal places to round to (default is 2).
 
     Returns:
-        mp.mpf: A high-precision number (not string).
+        Decimal: The rounded value as a Decimal object with the specified precision.
+
+    Example:
+        _round(Decimal('2.675'), 2)     -> Decimal('2.68')
+        _round(Decimal('123.4567'), 1) -> Decimal('123.5')
     """
-    try:
-        mp.dps = max(50, decimals + 5 if decimals else 50)
-        d = mp.mpf(str(value))
-        if decimals is not None:
-            return mp.mpf(round(d, decimals))
-        return d
-    except Exception as e:
-        print(f"⚠️  Failed to convert value to decimal: {value} -> {e}")
-        return mp.mpf("0")
+    quantizer = Decimal('1.' + '0' * decimals)
+    return value.quantize(quantizer, rounding=ROUND_HALF_UP)
 
 
 def is_number(value):
@@ -66,6 +67,6 @@ def data_format(obj):
         obj.coin.upper(),
         obj.quantity,
         f"{obj.price}$",
-        f"{to_decimal(obj.fee, 6)}{obj.coin.upper()}" if obj.type == "buy" else f"{to_decimal(obj.fee, 2)}$",
-        f"{to_decimal(obj.total_usdt, 2)}$"
+        f"{obj.fee} {obj.coin.upper()}" if obj.type == "buy" else f"{obj.fee} $",
+        f"{obj.total_cost}$"
     ]

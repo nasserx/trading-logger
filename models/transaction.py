@@ -1,5 +1,6 @@
+from decimal import Decimal
 from config import FEES_RATE
-from core.utils import get_current_date, to_decimal
+from core.utils import get_current_date, _round
 
 class Transaction:
     """
@@ -28,10 +29,10 @@ class Transaction:
         self.date = get_current_date()
         self.type = type
         self.coin = coin
-        self.quantity = to_decimal(quantity)
-        self.price = to_decimal(price)
-        self.fee = to_decimal(self.calc_fee())
-        self.total_usdt = to_decimal(self.calc_total_usdt())
+        self.quantity = Decimal(str(quantity))
+        self.price = Decimal(str(price))
+        self.fee = _round(self.calc_fee(), 8)
+        self.total_cost = _round(self.calc_total_cost(), 2)
 
     def calc_fee(self):
         """
@@ -41,16 +42,20 @@ class Transaction:
             Decimal: The calculated fee.
         """
         if self.type.lower() == "buy":
-            return (((self.quantity * 100) / to_decimal((100 - FEES_RATE * 100))) - self.quantity)
-        return self.quantity * self.price * to_decimal(FEES_RATE)
+            fees_percentage = Decimal(str(FEES_RATE)) * Decimal('100')
+            net_percentage = Decimal('100') - fees_percentage
+            fees_from_quantity = ((self.quantity * Decimal('100')) / net_percentage) - self.quantity
+            return fees_from_quantity
+        return self.quantity * self.price * Decimal(str(FEES_RATE))
 
-    def calc_total_usdt(self):
+    def calc_total_cost(self):
         """
         Calculates the total USDT involved in the transaction after fees.
         
         Returns:
             Decimal: The total USDT amount (cost for buys, return for sells).
         """
+        total_cost = self.quantity * self.price
         if self.type.lower() == "buy":
-            return self.quantity * self.price + self.fee
-        return self.quantity * self.price - self.fee
+            return total_cost + self.fee
+        return total_cost - self.fee
