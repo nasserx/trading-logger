@@ -57,5 +57,5 @@ class Transaction:
         """
         total_cost = self.quantity * self.price
         if self.type.lower() == "buy":
-            return total_cost + (self.fee * self.price) # <- here before edit total_cost + (self.fee * self.price)
+            return total_cost + (self.fee * self.price)
         return total_cost - self.fee
