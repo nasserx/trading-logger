@@ -32,7 +32,7 @@ class Transaction:
         self.quantity = Decimal(quantity)
         self.price = Decimal(price)
         self.fee = self.get_maker_fee() if self.type == "buy" else self.get_taker_fee()
-        self.total_cost = self.get_total_cost()
+        self.total_cost = _round(self.get_total_cost())
 
     def get_maker_fee(self):
         """
@@ -66,6 +66,4 @@ class Transaction:
             Decimal: The total USDT amount (cost for buys, return for sells).
         """
         total_cost = self.quantity * self.price
-        if self.type.lower() == "buy":
-            return total_cost + (self.fee * self.price)
-        return total_cost - self.fee
+        return total_cost + (self.fee * self.price) if self.type.lower() == "buy" else total_cost - self.fee
