@@ -65,6 +65,7 @@ class Transaction:
         Returns:
             Decimal: The total USDT amount (cost for buys, return for sells).
         """
-        if self.type == "buy":
-            return _round(self.quantity * self.price + (self.fee * self.price))
-        return _round(self.quantity * self.price + self.fee)
+        total_cost = self.quantity * self.price
+        if self.type.lower() == "buy":
+            return total_cost + (self.fee * self.price) # <- here before edit total_cost + (self.fee * self.price)
+        return total_cost - self.fee
