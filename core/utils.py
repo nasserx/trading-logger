@@ -68,5 +68,5 @@ def data_format(obj):
         obj.quantity,
         f"{obj.price}$",
         f"{obj.fee} {obj.coin.upper()}" if obj.type == "buy" else f"{obj.fee} $",
-        f"{obj.total_cost}$"
+        f"{obj.get_total_cost()}$"
     ]

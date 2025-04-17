@@ -29,33 +29,42 @@ class Transaction:
         self.date = get_current_date()
         self.type = type
         self.coin = coin
-        self.quantity = Decimal(str(quantity))
-        self.price = Decimal(str(price))
-        self.fee = _round(self.calc_fee(), 8)
-        self.total_cost = _round(self.calc_total_cost(), 2)
+        self.quantity = Decimal(quantity)
+        self.price = Decimal(price)
+        self.fee = self.get_maker_fee() if self.type == "buy" else self.get_taker_fee()
+        self.total_cost = self.get_total_cost()
 
-    def calc_fee(self):
+    def get_maker_fee(self):
         """
-        Calculates the transaction fee based on type and FEES_RATE.
-        
+        Calculates the fee for a 'buy' transaction.
+        The fee is deducted from the quantity, so we adjust to find the actual fee amount.
+
         Returns:
-            Decimal: The calculated fee.
+            Decimal: The fee in coin units, rounded to 8 decimal places.
         """
-        if self.type.lower() == "buy":
-            fees_percentage = Decimal(str(FEES_RATE)) * Decimal('100')
-            net_percentage = Decimal('100') - fees_percentage
-            fees_from_quantity = ((self.quantity * Decimal('100')) / net_percentage) - self.quantity
-            return fees_from_quantity
-        return self.quantity * self.price * Decimal(str(FEES_RATE))
+        maker_fee = self.quantity / (1 - Decimal(FEES_RATE)) - self.quantity
+        return _round(maker_fee, 8)
 
-    def calc_total_cost(self):
+    def get_taker_fee(self):
+        """
+        Calculates the fee for a 'sell' transaction.
+        The fee is taken from the total USDT amount (quantity * price).
+
+        Returns:
+            Decimal: The fee in USDT, rounded to 8 decimal places.
+        """
+        taker_fee = self.quantity * self.price * Decimal(FEES_RATE)
+        return _round(taker_fee, 8)
+
+    def get_total_cost(self):
         """
         Calculates the total USDT involved in the transaction after fees.
-        
+        For 'buy' transactions, the fee is converted to USDT (fee * price).
+        For 'sell' transactions, the fee is already in USDT and added to the total.
+
         Returns:
             Decimal: The total USDT amount (cost for buys, return for sells).
         """
-        total_cost = self.quantity * self.price
-        if self.type.lower() == "buy":
-            return total_cost + (self.fee * self.price) # <- here before edit total_cost + (self.fee * self.price)
-        return total_cost - self.fee
+        if self.type == "buy":
+            return _round(self.quantity * self.price + (self.fee * self.price))
+        return _round(self.quantity * self.price + self.fee)

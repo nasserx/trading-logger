@@ -20,4 +20,4 @@ def save_to_csv(file_name, headers, data):
         df = pd.DataFrame(data)
         df.to_csv(file_name, mode='a', header=False, index=False, encoding='utf-8')
     
-    print("✅ The transaction was saved successfully!")
+    print("\nThe transaction was saved successfully!")
