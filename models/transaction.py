@@ -1,69 +1,47 @@
-from decimal import Decimal
-from config import FEES_RATE
-from core.utils import get_current_date, _round
+from core.utils import get_current_date, to_decimal
+from config import MAKER_FEE_RATE, TAKER_FEE_RATE
+
 
 class Transaction:
     """
-    Represents a trading transaction for a specific coin.
-    
-    Attributes:
-        date (str): The date of the transaction.
-        type (str): The type of transaction ("buy" or "sell").
-        coin (str): The name or symbol of the coin.
-        quantity (Decimal): The amount of the coin traded.
-        price (Decimal): The price per coin in USDT.
-        fee (Decimal): The calculated transaction fee.
-        total_usdt (Decimal): The total cost or return in USDT.
+    Represents a single trading transaction (buy or sell) for a specific coin,
+    including fee and total cost calculation in USDT.
     """
 
     def __init__(self, type, coin, quantity, price):
         """
-        Initializes a new Transaction instance.
-        
-        Args:
-            type (str): The transaction type ("buy" or "sell").
-            coin (str): The coin symbol or name.
-            quantity (float or str): The quantity of the coin.
-            price (float or str): The price per unit of the coin.
+        Initializes transaction data: type, coin, quantity, price.
+        Automatically calculates fee and total cost.
         """
         self.date = get_current_date()
         self.type = type
         self.coin = coin
-        self.quantity = Decimal(quantity)
-        self.price = Decimal(price)
-        self.fee = self.get_maker_fee() if self.type == "buy" else self.get_taker_fee()
-        self.total_cost = _round(self.get_total_cost())
+        self.quantity = to_decimal(quantity)
+        self.price = to_decimal(price)
+        self.fee = self.calculate_maker_fee() if self.type == "buy" else self.calculate_taker_fee()
+        self.total_cost = self.calculate_total_cost()
 
-    def get_maker_fee(self):
+    def calculate_maker_fee(self):
         """
-        Calculates the fee for a 'buy' transaction.
-        The fee is deducted from the quantity, so we adjust to find the actual fee amount.
-
-        Returns:
-            Decimal: The fee in coin units, rounded to 8 decimal places.
+        Calculates maker fee (for buy transactions).
+        The fee is deducted from the quantity and adjusted.
         """
-        maker_fee = self.quantity / (1 - Decimal(FEES_RATE)) - self.quantity
-        return _round(maker_fee, 8)
+        maker_fee = self.quantity / (1 - to_decimal(MAKER_FEE_RATE)) - self.quantity
+        return maker_fee
 
-    def get_taker_fee(self):
+    def calculate_taker_fee(self):
         """
-        Calculates the fee for a 'sell' transaction.
-        The fee is taken from the total USDT amount (quantity * price).
-
-        Returns:
-            Decimal: The fee in USDT, rounded to 8 decimal places.
+        Calculates taker fee (for sell transactions).
+        Taken from the total return in USDT.
         """
-        taker_fee = self.quantity * self.price * Decimal(FEES_RATE)
-        return _round(taker_fee, 8)
+        taker_fee = self.quantity * self.price * to_decimal(TAKER_FEE_RATE)
+        return taker_fee
 
-    def get_total_cost(self):
+    def calculate_total_cost(self):
         """
-        Calculates the total USDT involved in the transaction after fees.
-        For 'buy' transactions, the fee is converted to USDT (fee * price).
-        For 'sell' transactions, the fee is already in USDT and added to the total.
-
-        Returns:
-            Decimal: The total USDT amount (cost for buys, return for sells).
+        Calculates total USDT after applying the fee:
+        - For buys: add the fee (converted to USDT).
+        - For sells: subtract the fee from total.
         """
         total_cost = self.quantity * self.price
-        return total_cost + (self.fee * self.price) if self.type.lower() == "buy" else total_cost - self.fee
+        return total_cost + (self.fee * self.price) if self.type == "buy" else total_cost - self.fee
